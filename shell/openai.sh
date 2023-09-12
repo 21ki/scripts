@@ -6,7 +6,7 @@
  # @LastEditTime: 2023-02-15 20:54:40
  # @FilePath: /OpenAI-Checker/openai.sh
  # @Telegram: https://t.me/missuo
- # 
+ # @link https://github.com/missuo/OpenAI-Checker
  # Copyright © 2023 by Vincent, All Rights Reserved. 
 ### 
 
