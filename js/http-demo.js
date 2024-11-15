@@ -1,4 +1,4 @@
-$httpClient.put({
+$httpClient.get({
 	url: "https://7b367ed3.proxy.webhookapp.com",
 	body: {
         "id": "surge-http",
