@@ -1,4 +1,5 @@
 // 配置请求 URL 和请求体数据
+// https://george.betterde.com/technology/20230412.html
 const url = "http://7b367ed3.proxy.webhookapp.com";
 const requestData = {
   id: "surge-http",
