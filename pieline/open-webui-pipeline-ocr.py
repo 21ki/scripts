@@ -15,7 +15,7 @@ import re
 import os
 
 
-class Pipe:
+class Pipeline:
     class Valves(BaseModel):
         # api base url
         base_api_url: str = Field(
