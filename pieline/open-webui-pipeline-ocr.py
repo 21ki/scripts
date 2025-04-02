@@ -14,7 +14,11 @@ from typing import Callable, Awaitable, Any, Optional
 import base64
 import re
 import os
+import logging
 
+# Set up logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 class Pipeline:
     class Valves(BaseModel):
@@ -31,10 +35,14 @@ class Pipeline:
     def __init__(self):
         self.valves = self.Valves()
 
+    async def default_event_emitter(self, event: Any) -> None:
+        """Default event emitter that logs events."""
+        logger.debug(f"Event emitted: {event}")
+
     async def pipe(
         self,
         body: dict,
-        __event_emitter__: Callable[[Any], Awaitable[None]],
+        __event_emitter__: Optional[Callable[[Any], Awaitable[None]]] = None,
         user: Optional[dict] = None,
         user_message: Optional[str] = None,
         **kwargs
@@ -47,11 +55,14 @@ class Pipeline:
 
         Args:
             body: The request body containing messages or file information
-            __event_emitter__: Callback function for emitting status events
+            __event_emitter__: Optional callback function for emitting status events
             user: Optional user information
             user_message: Optional user message
             **kwargs: Additional keyword arguments
         """
+        # Use default event emitter if none provided
+        event_emitter = __event_emitter__ or self.default_event_emitter
+
         try:
             # If user_message is provided, add it to the body
             if user_message:
@@ -63,7 +74,7 @@ class Pipeline:
             image_file_path = self._extract_file_path(body)
             if image_file_path and os.path.exists(image_file_path):
                 method = "File Upload"
-                await __event_emitter__(
+                await event_emitter(
                     {
                         "type": "status",
                         "data": {
@@ -76,7 +87,12 @@ class Pipeline:
                 try:
                     # Build complete upload URL
                     upload_url = f"{self.valves.base_api_url}/proxy/upload"
-                    upload_headers = {"x-custom-cookie": self.valves.ocr_api_token or "api"}
+                    upload_headers = {
+                        "x-custom-cookie": self.valves.ocr_api_token or "api",
+                        "Authorization": f"Bearer {self.valves.ocr_api_token}" if self.valves.ocr_api_token else None
+                    }
+                    upload_headers = {k: v for k, v in upload_headers.items() if v is not None}
+
                     form_data = aiohttp.FormData()
                     form_data.add_field(
                         name="file",
@@ -84,12 +100,15 @@ class Pipeline:
                         filename=os.path.basename(image_file_path),
                         content_type="application/octet-stream",
                     )
-                    async with aiohttp.ClientSession() as session:
+
+                    timeout = aiohttp.ClientTimeout(total=30)
+                    async with aiohttp.ClientSession(timeout=timeout) as session:
                         async with session.post(
                             upload_url, headers=upload_headers, data=form_data
                         ) as resp:
                             resp.raise_for_status()
                             upload_result = await resp.json()
+                            logger.debug(f"Upload response: {upload_result}")
 
                     # Get imageId from response, then call /recognize
                     image_id = upload_result.get("id")
@@ -101,18 +120,22 @@ class Pipeline:
                     recognize_headers = {
                         "x-custom-cookie": self.valves.ocr_api_token or "api",
                         "Content-Type": "application/json",
+                        "Authorization": f"Bearer {self.valves.ocr_api_token}" if self.valves.ocr_api_token else None
                     }
+                    recognize_headers = {k: v for k, v in recognize_headers.items() if v is not None}
+                    
                     payload = {"imageId": image_id}
 
-                    async with aiohttp.ClientSession() as session:
+                    async with aiohttp.ClientSession(timeout=timeout) as session:
                         async with session.post(
                             recognize_url, headers=recognize_headers, json=payload
                         ) as resp:
                             resp.raise_for_status()
                             ocr_result = await resp.json()
+                            logger.debug(f"Recognition response: {ocr_result}")
 
                     # Notify completion
-                    await __event_emitter__(
+                    await event_emitter(
                         {
                             "type": "status",
                             "data": {
@@ -124,7 +147,8 @@ class Pipeline:
                     return self._format_ocr_result(ocr_result)
 
                 except Exception as e:
-                    await __event_emitter__(
+                    logger.error(f"Error during file processing: {str(e)}", exc_info=True)
+                    await event_emitter(
                         {
                             "type": "status",
                             "data": {
@@ -158,7 +182,7 @@ class Pipeline:
                         return "No valid image provided (Local file / URL / Base64)."
 
                 # Notify start of recognition
-                await __event_emitter__(
+                await event_emitter(
                     {
                         "type": "status",
                         "data": {
@@ -173,16 +197,21 @@ class Pipeline:
                     headers = {
                         "Content-Type": "application/json",
                         "x-custom-cookie": self.valves.ocr_api_token or "api",
+                        "Authorization": f"Bearer {self.valves.ocr_api_token}" if self.valves.ocr_api_token else None
                     }
-                    async with aiohttp.ClientSession() as session:
+                    headers = {k: v for k, v in headers.items() if v is not None}
+
+                    timeout = aiohttp.ClientTimeout(total=30)
+                    async with aiohttp.ClientSession(timeout=timeout) as session:
                         async with session.post(
                             ocr_api_url, headers=headers, json=payload
                         ) as response:
                             response.raise_for_status()
                             ocr_result = await response.json()
+                            logger.debug(f"OCR response: {ocr_result}")
 
                     # Process complete
-                    await __event_emitter__(
+                    await event_emitter(
                         {
                             "type": "status",
                             "data": {
@@ -194,8 +223,9 @@ class Pipeline:
                     return self._format_ocr_result(ocr_result)
 
                 except Exception as e:
+                    logger.error(f"Error during OCR request: {str(e)}", exc_info=True)
                     # Error occurred
-                    await __event_emitter__(
+                    await event_emitter(
                         {
                             "type": "status",
                             "data": {
@@ -206,6 +236,7 @@ class Pipeline:
                     )
                     return f"OCR API request failed: {e}"
         except Exception as e:
+            logger.error(f"Pipeline error: {str(e)}", exc_info=True)
             return f"Pipeline error: {str(e)}"
 
     #
