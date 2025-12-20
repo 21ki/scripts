@@ -1,1 +1,2 @@
-OR,((IP-CIDR,168.168.0.0/16,no-resolve), (IP-CIDR,192.168.10.0/23,no-resolve), (IP-CIDR,192.168.1.0/24,no-resolve), (IP-CIDR,10.45.0.0/24,no-resolve), (DOMAIN,mvmyun.com,extended-matching), (DOMAIN-SUFFIX,maillmvm.com,extended-matching))
+# jdjt
+OR,((IP-CIDR,168.168.0.0/16,no-resolve), (IP-CIDR,192.168.10.0/23,no-resolve), (IP-CIDR,192.168.1.0/24,no-resolve), (IP-CIDR,10.45.0.0/24,no-resolve), (IP-CIDR,10.10.21.0/24,no-resolve), (DOMAIN,mvmyun.com,extended-matching), (DOMAIN-SUFFIX,maillmvm.com,extended-matching))
