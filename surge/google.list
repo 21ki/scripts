@@ -1,0 +1,7 @@
+# google
+DOMAIN-SUFFIX,googleapis.com
+# google-ai
+DOMAIN,generativelanguage.googleapis.com/
+# 翻译
+DOMAIN,translate.googleapis.com
+DOMAIN,translate-pa.googleapis.com
