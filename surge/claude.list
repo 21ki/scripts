@@ -2,6 +2,7 @@ DOMAIN-SUFFIX,anthropic.com
 DOMAIN-SUFFIX,claude.ai
 DOMAIN-SUFFIX,claude.com
 DOMAIN-SUFFIX,clau.de
+DOMAIN-SUFFIX,ant.dev
 DOMAIN-SUFFIX,claudemcpclient.com
 DOMAIN-SUFFIX,claudeusercontent.com
 
@@ -21,6 +22,7 @@ DOMAIN-SUFFIX,statsigapi.net
 DOMAIN,browser-intake-us5-datadoghq.com
 DOMAIN-KEYWORD,datadog
 DOMAIN-KEYWORD,sift
+DOMAIN-KEYWORD,claude
 
 # 客服 / 第三方 widget
 DOMAIN-SUFFIX,intercom.io
